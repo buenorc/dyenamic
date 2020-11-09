@@ -1,7 +1,7 @@
 ## Dyenamic
 
-The Dyenamic is an open-software designed to investigate gravity currents generated in laboratory tanks, providing a set of tools to estimate many physical parameters as a time series data, including gravity current speed, Froude number, mixing length, and many others. Users also can work with erodible beds, in which, based on gray-scale values, the software distinguishes the gravity current from the sediment particles, and can compute many variables to analyze the dynamic of sediment caused by gravity currents.  
-The Dynamic provides a powerful and easily accessible analysis of gravity currents though a simple recorded video, which can be used by students and researchers.
+The Dyenamic is an open-software designed to investigate gravity currents generated in laboratory tanks, providing a set of tools to estimate many physical parameters as time-series data, including gravity current speed, Froude number, mixing length, and many others. Users also can work with erodible beds, in which, based on gray-scale values, the software distinguishes the gravity current from the sediment particles, and can compute many variables to analyze the dynamic of sediment caused by gravity currents.
+The Dynamic provides a powerful and easily accessible analysis of gravity currents through a simple recorded video, which can be used by students and researchers.
 
 ### Atual version: Beta
 
