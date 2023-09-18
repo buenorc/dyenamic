@@ -9,7 +9,6 @@ The Dynamic provides a powerful and easily accessible analysis of gravity curren
 ### scientific paper (unpublished):
 DE CARVALHO BUENO, Rafael; DINIZ, André Luís, DA SILVA; Nathan Streisky; BLENINGER, Tobias Bernward. **Gravity current analyzer for lock-release experiments**. Not Subimitted yet.
 
-GuiHub (scientific paper repository): not available yet !
 
 ### How to run:
 
