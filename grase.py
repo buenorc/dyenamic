@@ -6,8 +6,10 @@ Rafael de Carvalho Bueno (rafael.bueno@ufpr.br)
 import os 
 import sys
 import time
+import platform
 import numpy as np
 from tkinter import *
+
 
 import grase_packages as grapa
 import grase_analyzer as grana
@@ -30,9 +32,17 @@ def main():
     start_time = time.time()
     
     root = Tk()
+
     root.configure(background='white')
     root.title("Dyenamic Running") 
     root.geometry('800x800')
+
+    if platform.system() == 'Windows':
+        root.iconbitmap("./dyenamic-icon.ico")
+
+    else:
+        img = PhotoImage(file='./dyenamic-icon.png')
+        root.tk.call('wm','iconphoto',window._w,img)
     
     
     outputPanel = Text(root, wrap='word', height=30, width=100)
@@ -45,7 +55,7 @@ def main():
     root.update()
     print ("--------------------------------------------------------------------------------------")
     root.update()
-    print ("> Dyenamic, version 1.00.1        September 2020")
+    print ("> Dyenamic, version 1.00.5        June 2021")
     root.update()  
     print ("> ")
     root.update() 
@@ -65,6 +75,7 @@ def main():
 
     plot= np.zeros((7),int)
     text= np.zeros((7),int)
+    eq  = []
 #    
     with open('temporary.txt') as reader:
 
@@ -80,12 +91,37 @@ def main():
         rhoc       = float(reader.readline())
         L          = float(reader.readline())
         H          = float(reader.readline())        
+        Hc         = float(reader.readline()) 
+        Lo         = float(reader.readline()) 
+        zuser      = float(reader.readline()) 
+        nu         = float(reader.readline()) 
+        size       = float(reader.readline()) 
+
         ah1        = float(reader.readline())    # "999" used to swich off 
         ah2        = float(reader.readline())    # "999" used to swich off 
-        ah3        = float(reader.readline())    # "999" used to swich off 
+        ah3        = float(reader.readline())    # "999" used to swich off         
+        
         maxcur     = float(reader.readline())
         mincur     = float(reader.readline())
+        
+        model      = float(reader.readline())
+        coefa      = float(reader.readline())
+        coefb      = float(reader.readline())
+        coefc      = float(reader.readline())
+        
+        
         piv        = int(reader.readline())     # "1" activated / "0" do not activated
+
+        winsize    = float(reader.readline())
+        searchsize = float(reader.readline())
+        overlap    = float(reader.readline())
+        intera     = float(reader.readline())
+        kernel     = float(reader.readline())
+        thold      = float(reader.readline())
+        maxVal     = float(reader.readline())
+        block      = float(reader.readline())
+        const      = float(reader.readline())         
+        
         text[6]    = int(reader.readline())
         plot[6]    = int(reader.readline())
         
@@ -103,17 +139,21 @@ def main():
         plot[4]      = int(reader.readline())
         text[3]      = int(reader.readline())
         text[4]      = int(reader.readline())
-            
+        fdpi         = float(reader.readline())            
+    
+    
+    eq    = [coefa,coefb,coefc]         # [1260,-0.044,999] y = a*x**b + c
     
     os.remove('temporary.txt')
     
-    lenx   = L*100       # escala de comprimento do vídeo (mm)
-    lenz   = H*100       # escala de altura do vídeo (mm)
+    lenx       = L*10       # escala de comprimento do vídeo (mm)
+    lenz       = H*10       # escala de altura do vídeo (mm)
 
     print ("> Part II      Defining frames from video and running PIV... ")
     root.update()          
+
     
-    num_scene,bg,numr,numc,x,z,dt = grapa.vidtoframes(path_video, dt, mincur, maxcur,rhoa,rhoc,minsed,maxsed,lenx,lenz,sedanal,plot,text,pathout,piv,root)    
+    num_scene,bg,numr,numc,x,z,dt = grapa.vidtoframes(path_video, dt, mincur, maxcur,rhoa,rhoc,minsed,maxsed,lenx,lenz,model,eq,sedanal,plot,text,pathout,piv,winsize, searchsize,overlap,intera,kernel,thold,maxVal,block,const,root,fdpi)    
     
     print ("> ")
     root.update()
@@ -131,9 +171,9 @@ def main():
     root.update()
     print ("> Part III     Starting data processing...  ")
     root.update()  
-  
+
     
-    grana.load(pathout,num_scene,numr,numc,x,z,dt,rhoa,rhoc,Hsed,L,H,ah1,ah2,ah3,sedanal,plot,text,root)
+    grana.load(pathout,num_scene,numr,numc,x,z,dt,size,rhoa,rhoc,nu,Hsed,L,H,Hc,Lo,zuser,ah1,ah2,ah3,sedanal,plot,text,root,fdpi)
     
     
     print ("> ")

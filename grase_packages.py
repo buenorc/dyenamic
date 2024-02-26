@@ -12,7 +12,6 @@ import cv2
 import os
 import time
 import numpy as np
-import grase_piv as pivel 
 import matplotlib.pyplot as plt
 
 
@@ -25,13 +24,13 @@ from tkinter import *
 def pixel_length(img,lenx,lenz):
     
     height = img.shape[0]
-    width  = img.shape[1]
+    length  = img.shape[1]  
     
-    area = (lenx/width)*(lenz/height)
+    area = (lenx/length)*(lenz/height)
     
     return area     # same unit of lexx and lenz (preferably in mm)
 
-def vidtoframes(videoFile, dt, mincur, maxcur,rhoa,rhoc,minsed,maxsed,lenx,lenz,sedanal,plot,text,pathout,piv,root):
+def vidtoframes(videoFile, dt, mincur, maxcur,rhoa,rhoc,minsed,maxsed,lenx,lenz,model,eq,sedanal,plot,text,pathout,piv,winsize, searchsize,overlap,intera,kernel,thold,maxVal,block,const,root,fdpi):
 
     vidcap = cv2.VideoCapture(videoFile)
     fps = vidcap.get(cv2.CAP_PROP_FPS)
@@ -74,7 +73,7 @@ def vidtoframes(videoFile, dt, mincur, maxcur,rhoa,rhoc,minsed,maxsed,lenx,lenz,
         vidcap.set(cv2.CAP_PROP_POS_MSEC,(save*dt*1000))
 
 
-        bg,numrows,numcols,x,z,old = frame_analyzer(save,mincur,maxcur,rhoa,rhoc,minsed,maxsed,lenx,lenz,bg,sedanal,plot,text,pathout,piv,dt,old)
+        bg,numrows,numcols,x,z,old = frame_analyzer(save,mincur,maxcur,rhoa,rhoc,minsed,maxsed,lenx,lenz,bg,sedanal,plot,text,pathout,piv,dt,old,model,eq,winsize, searchsize,overlap,intera,kernel,thold,maxVal,block,const,root,fdpi)
            
         if save == 1:
             print ('> ')
@@ -99,7 +98,7 @@ def vidtoframes(videoFile, dt, mincur, maxcur,rhoa,rhoc,minsed,maxsed,lenx,lenz,
     return save,bg,numrows,numcols,x,z,dt
 
 
-def frame_analyzer(number,mincur,maxcur,rhoa,rhoc,minsed,maxsed,lenx,lenz, background, sedanal,plot,text,pathout,piv,dt,old):
+def frame_analyzer(number,mincur,maxcur,rhoa,rhoc,minsed,maxsed,lenx,lenz, background, sedanal,plot,text,pathout,piv,dt,old,model,eq,winsize, searchsize,overlap,intera,kernel,thold,maxVal,block,const,root,fdpi):
     img = cv2.imread("./%d.png" %number, cv2.IMREAD_GRAYSCALE)
     pixar = pixel_length(img,lenx,lenz) # mm²
 
@@ -108,19 +107,39 @@ def frame_analyzer(number,mincur,maxcur,rhoa,rhoc,minsed,maxsed,lenx,lenz, backg
 
     
     if number > 0 and piv==1:
-        scal = np.sqrt(pixar)/1000
-        pivel.analyzer(img, old, text[6], plot[6], number, pathout, scal, lenz, lenx, dt)
+
+        scalz  = (img.shape[0]*1000/lenz) # pixel/m
+        scalx  = (img.shape[1]*1000/lenx) # pixel/m
+        
+        if number == 1:
+            ratio_scaling = scalx/scalz
+
+            print ('> ')
+            root.update() 
+            print ('> Warning:     The scaling ratio is '+str(round(ratio_scaling,2)))
+            root.update() 
+            print ('>              The ideal value is 1')
+            root.update() 
+            print ('>              See the user manual to improve this parameter')
+            root.update()         
+            print ('> ')             
+            root.update()  
+
+        import grase_piv as pivel 
+        pivel.analyzer(img, old, text[6], plot[6], number, pathout, scalx, lenz, lenx, winsize, searchsize,overlap,intera,kernel,thold,maxVal,block,const, dt,fdpi)
 
     old = img    
     if plot[2] == 0:
         os.remove("./%d.png"  %(number))
         
     curre = np.empty((numrows,numcols,))
-    sedim = np.zeros((numrows,numcols),int)       
+    sedim = np.zeros((numrows,numcols),float)       
 
-    x = np.linspace(0,lenz/100,numrows)  
-    z = np.linspace(0,lenx/100,numcols)  
     
+    x = np.linspace(0,lenz/10,numrows)  
+    z = np.linspace(0,lenx/10,numcols)  
+    
+
     for i in range(numrows):
         for j in range(numcols):
 
@@ -128,13 +147,14 @@ def frame_analyzer(number,mincur,maxcur,rhoa,rhoc,minsed,maxsed,lenx,lenz, backg
                 curre [i][j] = None
                 if sedanal == 1:
                     if (img [i][j] >= minsed and img[i][j] <= maxsed):
-                        sedim [i][j] = pixar
+
+                        sedim [i][j] = pixar  # mm²
                     
             else:
                 if(img [i][j]>maxcur):
                     curre [i][j] = rhoa
                 else:
-                    curre [i][j] = concentration(mincur,maxcur,img[i][j],rhoa,rhoc)
+                    curre [i][j] = concentration(mincur,maxcur,img[i][j],rhoa,rhoc,model,eq)
     
     # consistência dos dados para retirar imperfeições e sombras nas images
     if number == 0:
@@ -147,32 +167,37 @@ def frame_analyzer(number,mincur,maxcur,rhoa,rhoc,minsed,maxsed,lenx,lenz, backg
                 curre[i][j] = rhoa
     
     if plot[3] == 1:            
-        plot_current(x,z,curre,number,pathout,rhoa,rhoc)
+        plot_current(x,z,curre,number,pathout,rhoa,rhoc,lenx,lenz, fdpi)
     
     write_current(curre,number,pathout)
     
     if sedanal == 1:
         if plot[1] == 1:
-            plot_sedimen(x,z,sedim,number,pathout)
+            plot_sedimen(x,z,sedim,number,pathout,lenx,lenz, fdpi)
             
         write_sedimen(sedim,number,pathout)
     
     return background,numrows,numcols,x,z,old
     
-def concentration(mincur,maxcur,value, rhoa, rhoc): # interpolação linear 
-    a = (rhoc-rhoa)/(mincur-maxcur)
-    b = rhoc - a*mincur
-    y = a*value+b
+def concentration(mincur,maxcur,value, rhoa, rhoc, model, eq): 
+
+    if model == 1:  # potential (user defined)
+        y = eq[0]*value**eq[1] + eq[2] 
+
+    if model == 0:  # linear
+        a = (rhoc-rhoa)/(mincur-maxcur)
+        b = rhoc - a*mincur
+        y = a*value+b
     
     return y
 
 def write_current(plume, num,pathout):
     np.savetxt(pathout+'/current'+str(num)+'.txt',plume,fmt='%.3f')
 
-def plot_current(x,y,plume,num_scene,pathout,rhoa,rhoc):
+def plot_current(x,y,plume,num_scene,pathout,rhoa,rhoc,lenx,lenz,fdpi):
     
     plt.figure(figsize=(10,6))
-    plt.imshow(plume, extent=[0,40,0,22], cmap=plt.get_cmap('plasma'))
+    plt.imshow(plume, extent=[0,lenx/10,0,lenz/10], cmap=plt.get_cmap('plasma'))
     plt.xlabel('x (cm)')
     plt.ylabel('y (cm)')
     plt.colorbar(orientation='horizontal',label='Water density (kg/m³)')
@@ -180,16 +205,16 @@ def plot_current(x,y,plume,num_scene,pathout,rhoa,rhoc):
     
     
     plt.gca().set_aspect('equal', adjustable='box')
-    plt.savefig(pathout+'/current'+str(num_scene)+'.png',dpi=800)
+    plt.savefig(pathout+'/current'+str(num_scene)+'.png',dpi=fdpi)
     plt.close()
      
 def write_sedimen(plume, num,pathout):
     np.savetxt(pathout+'/sediment'+str(num)+'.txt',plume,fmt='%.3f')
 
-def plot_sedimen(x,y,plume,num_scene,pathout):
+def plot_sedimen(x,y,plume,num_scene,pathout,lenx,lenz,fdpi):
     
     plt.figure(figsize=(10,6))
-    plt.imshow(plume, extent=[0,40,0,22], cmap=plt.get_cmap('plasma'))
+    plt.imshow(plume, extent=[0,lenx/10,0,lenz/10], cmap=plt.get_cmap('plasma'))
     plt.xlabel('x (cm)')
     plt.ylabel('y (cm)')
     plt.colorbar(orientation='horizontal',label='occupied area')
@@ -197,5 +222,5 @@ def plot_sedimen(x,y,plume,num_scene,pathout):
     
     
     plt.gca().set_aspect('equal', adjustable='box')
-    plt.savefig(pathout+'/sediment'+str(num_scene)+'.png',dpi=800)
+    plt.savefig(pathout+'/sediment'+str(num_scene)+'.png',dpi=fdpi)
     plt.close()
